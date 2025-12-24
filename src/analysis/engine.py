@@ -418,9 +418,14 @@ class AnalysisEngine:
         # Critical Hard Rule
         ocf = float(fundamentals.get('Operating Cash Flow', 1) or 1)
         cfo_pat = float(fundamentals.get('CFO to PAT', 1) or 1)
+        debt = float(fundamentals.get('Debt / Equity', 0) or 0)
         
-        # Expert Rule: OCF < 0 OR (CFO/PAT) < 0.5
-        is_risky = (ocf < 0) or (cfo_pat < 0.5)
+        # Expert Rule Refined: 
+        # 1. OCF < 0 is always bad.
+        # 2. Low CFO/PAT (<0.5) is risky ONLY if Debt is high (>1).
+        #    If Debt is low, it might just be working capital cycle (common in Infra/Real Estate).
+        
+        is_risky = (ocf < 0) or (cfo_pat < 0.5 and debt > 1.0)
         
         # Swing
         close = float(technicals.get('Close', 100) or 100)
