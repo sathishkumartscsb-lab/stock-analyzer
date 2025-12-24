@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analyzer</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { text-align: center; background: #1e293b; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        input { padding: 15px; border-radius: 8px; border: none; width: 300px; font-size: 1.1rem; margin-bottom: 20px; text-transform: uppercase; }
+        button { padding: 15px 30px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; font-weight: bold; }
+        button:hover { background: #16a34a; }
+        .error { color: #ef4444; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Stock Analyzer</h1>
+        <p>Enter NSE Stock Symbol (e.g., TATAMOTORS)</p>
+        <form action="/analyze" method="POST">
+            <input type="text" name="stock_name" placeholder="STOCK NAME" required>
+            <br>
+            <button type="submit">Generate Infographic</button>
+        </form>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>

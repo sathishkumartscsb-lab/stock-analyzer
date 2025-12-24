@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TATAMOTORS - Stock Analysis Infographic</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #0f172a;
+            --secondary-color: #334155;
+            --accent-color: #3b82f6;
+            --success-color: #22c55e;
+            --warning-color: #eab308;
+            --danger-color: #ef4444;
+            --light-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--primary-color);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            color: white;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+        }
+
+        .header .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            margin-top: 5px;
+        }
+
+        /* Grid Layout for Parameters */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Parameter Lists */
+        .param-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .param-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+        .param-item:last-child {
+            border-bottom: none;
+        }
+
+        .param-name {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .param-value {
+            text-align: right;
+        }
+
+        /* Status Indicators */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+            margin-left: 5px;
+        }
+
+        .status-green {
+            background-color: var(--success-color);
+        }
+
+        .status-red {
+            background-color: var(--danger-color);
+        }
+
+        .status-yellow {
+            background-color: var(--warning-color);
+            color: black;
+        }
+
+        /* Summaries Section */
+        .summary-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-box {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid;
+        }
+
+        .summary-green {
+            border-color: var(--success-color);
+        }
+
+        .summary-red {
+            border-color: var(--danger-color);
+        }
+
+        .summary-yellow {
+            border-color: var(--warning-color);
+        }
+
+        .summary-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        /* Score Dashboard */
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .score-item {
+            text-align: center;
+            margin: 10px;
+        }
+
+        .score-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Investment Decision */
+        .decision-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .decision-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .decision-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .decision-verdict {
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Traffic Light & Conclusion */
+        .footer-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .traffic-lights {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 50px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .light {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+
+        .dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .final-action {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 2px solid var(--accent-color);
+        }
+
+        #download-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .decision-container {
+                grid-template-columns: 1fr;
+            }
+
+            .traffic-lights {
+                flex-direction: column;
+                border-radius: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button id="download-btn" onclick="downloadImage()">Download Infographic Image</button>
+
+    <div class="container" id="infographic">
+        <div class="header">
+            <h1>TATAMOTORS SOLUTIONS LTD</h1>
+            <div class="subtitle">Stock Analysis Report • Ticker: TATAMOTORS</div>
+        </div>
+
+        <!-- Score Board -->
+        <div class="score-board">
+            <div class="score-item">
+                <div class="score-value"
+                    style="color: #ef4444;">
+                    8.5 / 37
+                </div>
+                <div class="score-label">Total Score</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value"
+                    style="color: #ef4444;">
+                    🔴 High Risk
+                </div>
+                <div class="score-label">Overall Health</div>
+            </div>
+            <div class="score-item">
+                <div class="score-value">₹352.6499938964844</div>
+                <div class="score-label">Current Market Price</div>
+            </div>
+        </div>
+
+        <div class="grid-container">
+            <!-- Fundamental Analysis (24 Params) -->
+            <div class="card">
+                <div class="card-header">
+                    <span>📊 Fundamentals (24)</span>
+                    <span class="status-badge status-yellow">
+                        0 Positive
+                    </span>
+                </div>
+                <ul class="param-list">
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                </ul>
+            </div>
+
+            <!-- Technical Analysis (5 Params) -->
+            <div class="card">
+                <div class="card-header">
+                    <span>📈 Technicals (5)</span>
+                    <span class="status-badge status-yellow">
+                        3 Positive
+                    </span>
+                </div>
+                <ul class="param-list">
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Trend (DMA)</span>
+                        <span class="param-value">353 vs 606
+                            <span
+                                class="status-badge status-red">
+                                Bearish
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">RSI</span>
+                        <span class="param-value">34.8
+                            <span
+                                class="status-badge status-green">
+                                Oversold (Buy)
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">MACD</span>
+                        <span class="param-value">-16.19
+                            <span
+                                class="status-badge status-green">
+                                Bullish
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Pivot Support</span>
+                        <span class="param-value">351.5
+                            <span
+                                class="status-badge status-green">
+                                Above Pivot
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Volume Trend</span>
+                        <span class="param-value">Increasing
+                            <span
+                                class="status-badge status-red">
+                                Bearish
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                </ul>
+            </div>
+
+            <!-- News & Trends (8 Params) -->
+            <div class="card">
+                <div class="card-header">
+                    <span>📰 News & Trends (8)</span>
+                    <span class="status-badge status-yellow">5.5 Positive</span>
+                </div>
+                <ul class="param-list">
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Promoter Pledge</span>
+                        <span class="param-value">Stable
+                            <span
+                                class="status-badge status-green">
+                                Positive
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Mgmt Changes</span>
+                        <span class="param-value">None
+                            <span
+                                class="status-badge status-green">
+                                Stable
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Orders/Updates</span>
+                        <span class="param-value">Check
+                            <span
+                                class="status-badge status-yellow">
+                                Neutral
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Dividend/Buyback</span>
+                        <span class="param-value">Consistent
+                            <span
+                                class="status-badge status-green">
+                                Positive
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Results</span>
+                        <span class="param-value">Mixed
+                            <span
+                                class="status-badge status-yellow">
+                                Neutral
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Regulatory</span>
+                        <span class="param-value">None
+                            <span
+                                class="status-badge status-yellow">
+                                Clear
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Sector View</span>
+                        <span class="param-value">Average
+                            <span
+                                class="status-badge status-yellow">
+                                Neutral
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                    
+                    <li class="param-item">
+                        <span class="param-name">Valuation</span>
+                        <span class="param-value">Fair
+                            <span
+                                class="status-badge status-yellow">
+                                Neutral
+                            </span>
+                        </span>
+                    </li>
+                    
+                    
+                </ul>
+            </div>
+        </div>
+
+        <!-- Targets & Decisions -->
+        <div class="decision-container">
+            <div class="decision-card"
+                style="border-top: 5px solid #22c55e;">
+                <span class="decision-title">Swing Trading</span>
+                <span class="decision-verdict"
+                    style="color: #22c55e;">
+                    ✅ BUY
+                </span>
+                <p><strong>Reason:</strong> Based on technical indicators (DMA/MACD).</p>
+            </div>
+            <div class="decision-card"
+                style="border-top: 5px solid #ef4444;">
+                <span class="decision-title">Long-Term Investment</span>
+                <span class="decision-verdict"
+                    style="color: #ef4444;">
+                    ❌ AVOID
+                </span>
+                <p><strong>Reason:</strong> Based on fundamental score and cash flow rules.</p>
+            </div>
+        </div>
+
+        <div class="final-action">
+            FINAL ACTION: ✅ BUY for Swing. ❌ AVOID for Long Term. Weak scores across board.
+        </div>
+
+    </div>
+
+    <script>
+        function downloadImage() {
+            html2canvas(document.querySelector("#infographic")).then(canvas => {
+                var link = document.createElement('a');
+                link.download = 'TATAMOTORS_infographic.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+    </script>
+
+</body>
+
+</html>

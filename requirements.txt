@@ -1,0 +1,11 @@
+requests
+beautifulsoup4
+pandas
+numpy
+yfinance
+Pillow
+matplotlib
+python-telegram-bot
+TA-Lib
+sqlalchemy
+flask
