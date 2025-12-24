@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 class InfographicGenerator:
     def __init__(self):
         self.width = 1200 # Widened slightly
-        self.height = 1900 # Taller for all params
+        self.height = 2400 # Taller for all params + Summaries
         self.bg_color = "#0F172A"
         self.text_color = "#FFFFFF"
         self.green = "#22C55E"
@@ -107,10 +107,33 @@ class InfographicGenerator:
         
         y_cards = max(y_tech, y_news) + 50
         
-        # 3. Decision Cards (Swing & Long Term)
+        # 3. Summary Boxes (Web Layout Match)
+        # Fund Summary
+        f_summary = data.get('fundamental_summary', 'No summary.')
+        t_summary = data.get('technical_summary', 'No summary.')
+        n_summary = data.get('news_summary', 'No summary.')
+        
+        def draw_summary_box(title, text, x, y, width, color="#FFFFFF"):
+            draw.rounded_rectangle([x, y, x + width, y + 150], radius=15, fill="#F8FAFC", outline="#CBD5E1") # Light BG
+            draw.text((x + 20, y + 20), title, font=self.small_font, fill=self.green if "Bullish" in text else (self.red if "Bearish" in text else self.yellow).replace("#", "#333")) # Darker text for light bg
+            
+            # Wrap Text logic (Simple)
+            import textwrap
+            wrapped = textwrap.fill(text, width=35) 
+            draw.text((x + 20, y + 50), wrapped, font=self.small_font, fill="#0F172A") # Dark text
+
+        # Draw 3 boxes
+        box_w = 360
+        draw_summary_box("Fundamental Summary", f_summary, 50, y_cards, box_w)
+        draw_summary_box("Technical Summary", t_summary, 430, y_cards, box_w)
+        draw_summary_box("News Summary", n_summary, 810, y_cards, box_w)
+        
+        y_cards += 180 # Push down for decision cards
+
+        # 4. Decision Cards (Swing & Long Term)
         # Swing Card
         draw.rounded_rectangle([50, y_cards, 580, y_cards + 200], radius=15, fill=self.card_bg, outline="#334155")
-        draw.text((80, y_cards + 20), "SWING TRADING", font=self.body_font, fill="#94A3B8")
+        draw.text((80, y_cards + 20), "Swing Trading", font=self.body_font, fill="#94A3B8")
         
         swing_verdict = data.get('swing_verdict', 'WAIT')
         s_color = self.green if "BUY" in swing_verdict else (self.red if "AVOID" in swing_verdict else self.yellow)
@@ -126,7 +149,7 @@ class InfographicGenerator:
         
         # Long Term Card
         draw.rounded_rectangle([620, y_cards, 1150, y_cards + 200], radius=15, fill=self.card_bg, outline="#334155")
-        draw.text((650, y_cards + 20), "LONG TERM", font=self.body_font, fill="#94A3B8")
+        draw.text((650, y_cards + 20), "Long-Term Investment", font=self.body_font, fill="#94A3B8")
         
         lt_verdict = data.get('long_term_verdict', 'AVOID')
         l_color = self.green if "BUY" in lt_verdict else (self.red if "AVOID" in lt_verdict else self.yellow)
@@ -135,9 +158,21 @@ class InfographicGenerator:
         lt_reason = data.get('long_term_reason', '')
         if len(lt_reason) > 40: lt_reason = lt_reason[:37] + "..."
         draw.text((650, y_cards + 110), lt_reason, font=self.small_font, fill="#E2E8F0")
+        
+        y_cards += 220 # Push down
 
-        # 4. Footer (Final Action)
-        y_final = y_cards + 240
+        # Retail Conclusion (Bottom Text)
+        retail_conc = data.get('retail_conclusion', '')
+        import textwrap
+        wrapped_conc = textwrap.fill(f"Retail Conclusion: {retail_conc}", width=90)
+        
+        draw.rounded_rectangle([50, y_cards, 1150, y_cards + 120], radius=15, fill="#F8FAFC", outline="#CBD5E1")
+        draw.text((80, y_cards + 20), "Overall:", font=self.small_font, fill="#0F172A")
+        draw.text((160, y_cards + 20), data.get('health_label',''), font=self.small_font, fill=self.green if "High" in data.get('health_label','') else self.red)
+        draw.text((80, y_cards + 50), wrapped_conc, font=self.small_font, fill="#334155")
+
+        # 5. Footer (Final Action)
+        y_final = y_cards + 150
         draw.rectangle([0, y_final, self.width, self.height], fill=self.card_bg)
         
         final_action = data.get('final_action', 'Analyze more data.')
