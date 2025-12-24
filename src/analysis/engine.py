@@ -442,11 +442,29 @@ class AnalysisEngine:
             s_reason = "Price > 50DMA & Momentum Positive"
         else:
             swing = "❌ AVOID"
-            # Calculate suggested entry (Support)
-            pivot_s1 = float(technicals.get('Pivot Support', 0) or 0)
-            support_level = pivot_s1 if pivot_s1 > 0 else (dma50 if dma50 > 0 else close * 0.95)
             
-            s_action = f"Wait for reversal. Entry around {support_level:.1f}"
+            # Smart Support Detection
+            # Prioritize: S1 (if < CMP), 50DMA (if < CMP), S2, 200DMA, or CMP-5%
+            s1 = float(technicals.get('S1', 0) or 0)
+            dma_50 = float(technicals.get('50DMA', 0) or 0)
+            dma_200 = float(technicals.get('200DMA', 0) or 0)
+            pivot = float(technicals.get('Pivot', 0) or 0)
+            
+            # Define candidates strictly lower than CMP (buffer 1%)
+            candidates = []
+            if s1 > 0 and s1 < close * 0.99: candidates.append(s1)
+            if dma_50 > 0 and dma_50 < close * 0.99: candidates.append(dma_50)
+            
+            # If no close supports, look deeper
+            if not candidates:
+                s2 = pivot - (float(technicals.get('High', 0) or close) - float(technicals.get('Low', 0) or close)) # Rough S2 approx if not in data
+                # Actually let's just descend
+                candidates.append(dma_200 if dma_200 > 0 and dma_200 < close else close * 0.95)
+
+            # Pick the highest of the valid lower supports (nearest support)
+            support_level = max(candidates)
+            
+            s_action = f"Wait for reversal. Support @ {support_level:.1f}"
             
             if close < dma50: s_reason = "Price below 50DMA (Downtrend)"
             else: s_reason = "Weak Momentum (RSI/MACD)"
