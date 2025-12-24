@@ -10,8 +10,9 @@ SCREENER_URL = "https://www.screener.in/company/{}/consolidated/"
 MONEYCONTROL_URL = "https://www.moneycontrol.com/"
 
 # Bot Token (Load from env)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID", "")
+# Bot Token (Load from env or direct for local)
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8468277745:AAE5EpRJGZOM7Pip8BfHR-_s7UQIUyMIbbM")
+TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID", "-5057435695")
 
 # News API Keys (Free Tiers)
 MARKETAUX_API_TOKEN = os.getenv("MARKETAUX_API_TOKEN", "")

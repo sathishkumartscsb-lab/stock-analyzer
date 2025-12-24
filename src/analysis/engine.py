@@ -434,9 +434,12 @@ class AnalysisEngine:
         if swing_score >= 2:
             swing = "✅ BUY"
             s_action = f"Entry: {close:.1f} | Tgt: {close*1.1:.1f} | SL: {close*0.95:.1f}"
+            s_reason = "Price > 50DMA & Momentum Positive"
         else:
             swing = "❌ AVOID"
             s_action = "Wait for reversal."
+            if close < dma50: s_reason = "Price below 50DMA (Downtrend)"
+            else: s_reason = "Weak Momentum (RSI/MACD)"
 
         # Long Term
         # --- Construct Detailed Summaries ---
@@ -522,6 +525,7 @@ class AnalysisEngine:
         return {
             'swing_verdict': swing,
             'swing_action': s_action,
+            'swing_reason': s_reason,
             'long_term_verdict': long_term,
             'long_term_reason': lt_reason,
             'final_action': final_action,

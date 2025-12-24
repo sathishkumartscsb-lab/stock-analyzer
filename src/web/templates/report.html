@@ -289,7 +289,12 @@
 
 <body>
 
-    <button id="btn-dl" onclick="dl()">Download Image</button>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button id="btn-dl" onclick="dl()">Download Image</button>
+        <button id="btn-tg" onclick="shareTelegram('{{ data.symbol }}')"
+            style="background: #0ea5e9; margin-left: 10px; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Share
+            to Telegram ✈️</button>
+    </div>
 
     <div class="main-container" id="report">
         <!-- Header -->
@@ -478,6 +483,40 @@
                 console.error("Download failed:", err);
                 btn.innerText = "Error (Try Screenshot)";
             });
+        }
+
+        function shareTelegram(symbol) {
+            const btn = document.getElementById('btn-tg');
+            const originalText = btn.innerText;
+            btn.innerText = "Sending...";
+            btn.disabled = true;
+
+            fetch('/share_telegram', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ symbol: symbol })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        btn.innerText = "Sent! ✅";
+                        setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.disabled = false;
+                        }, 3000);
+                    } else {
+                        btn.innerText = "Failed ❌";
+                        alert("Error sending to Telegram: " + data.message);
+                        btn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    btn.innerText = "Error ❌";
+                    btn.disabled = false;
+                });
         }
     </script>
 
