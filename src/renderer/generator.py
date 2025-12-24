@@ -115,7 +115,13 @@ class InfographicGenerator:
         
         def draw_summary_box(title, text, x, y, width, color="#FFFFFF"):
             draw.rounded_rectangle([x, y, x + width, y + 150], radius=15, fill="#F8FAFC", outline="#CBD5E1") # Light BG
-            draw.text((x + 20, y + 20), title, font=self.small_font, fill=self.green if "Bullish" in text else (self.red if "Bearish" in text else self.yellow).replace("#", "#333")) # Darker text for light bg
+            
+            # Determine Title Color
+            if "Bullish" in text: title_color = self.green
+            elif "Bearish" in text: title_color = self.red
+            else: title_color = "#B45309" # Dark Amber/Yellow
+            
+            draw.text((x + 20, y + 20), title, font=self.small_font, fill=title_color)
             
             # Wrap Text logic (Simple)
             import textwrap
