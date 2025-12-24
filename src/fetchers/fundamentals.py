@@ -162,6 +162,30 @@ class FundamentalFetcher:
             # 24. CFO/PAT
             cfo_pat = ocf / net_profit if net_profit else 0
 
+            # --- Intrinsic Value Calculation Details (Moved outside dict) ---
+            # Graham Formula Modified = (EPS * (8.5 + 2g) * 4.4) / Y
+            # g = Growth Rate (Capped at 20%), Y = AAA Bond Yield (~7.5%)
+            
+            # 1. Calculate EPS (TTM)
+            eps_ttm = cmp / pe if (pe and pe > 0) else eps_last
+            
+            # 2. Determine Growth (g) - Use Profit CAGR, capped at 20%
+            g_rate = min(prof_cagr, 20)
+            if g_rate < 0: g_rate = 0
+            
+            # 3. Calculate IV
+            # Graham Number (Deep Value)
+            # Need Book Value - checking if we fetched it? 
+            # Often data.get('book value') works if screener props are clean.
+            bv_val = float(data.get('book value', 0))
+            graham_num = (22.5 * eps_ttm * bv_val)**0.5 if (eps_ttm > 0 and bv_val > 0) else 0
+            
+            # Graham Formula (Growth Value)
+            graham_formula = (eps_ttm * (8.5 + 2 * g_rate) * 4.4) / 7.5
+            
+            # Final Value Selection
+            final_iv = graham_formula if graham_formula > 0 else (graham_num if graham_num > 0 else eps_ttm * 15)
+
             mapped_data = {
                 'Market Cap': mcap,
                 'Current Price': cmp,
@@ -173,10 +197,7 @@ class FundamentalFetcher:
                 'EBITDA Trend': ebitda_last,
                 'Debt / Equity': de,
                 'Dividend Yield': dy,
-                # Graham Number = Sqrt(22.5 * EPS * BookValue)
-                # Use TTM EPS (Price/PE) for better accuracy than last FY EPS
-                # If PE is 0 or invalid, fallback to eps_last
-                'Intrinsic Value': (22.5 * (cmp/pe if pe > 0 else eps_last) * float(data.get('book value', 0)))**0.5 if ((cmp/pe if pe > 0 else eps_last) > 0 and float(data.get('book value', 0)) > 0) else ((cmp/pe if pe > 0 else eps_last) * 15), 
+                'Intrinsic Value': final_iv,
                 'Current Ratio': curr_ratio,
                 'Promoter Holding': prom_hold,
                 'FII/DII Change': (fii_last - fii_prev),
