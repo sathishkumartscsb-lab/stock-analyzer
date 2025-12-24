@@ -38,7 +38,7 @@ class InfographicGenerator:
         draw.text((50, 40), stock_name, font=self.title_font, fill=self.text_color)
         
         cmp = data.get('cmp', 0)
-        draw.text((50, 120), f"CMP: ₹{cmp}", font=self.header_font, fill=self.text_color)
+        draw.text((50, 120), f"CMP: ₹{cmp:.2f}", font=self.header_font, fill=self.text_color)
         
         # Score Badge
         score = data.get('total_score', 0)
