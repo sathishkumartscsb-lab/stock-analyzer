@@ -442,7 +442,12 @@ class AnalysisEngine:
             s_reason = "Price > 50DMA & Momentum Positive"
         else:
             swing = "❌ AVOID"
-            s_action = "Wait for reversal."
+            # Calculate suggested entry (Support)
+            pivot_s1 = float(technicals.get('Pivot Support', 0) or 0)
+            support_level = pivot_s1 if pivot_s1 > 0 else (dma50 if dma50 > 0 else close * 0.95)
+            
+            s_action = f"Wait for reversal. Entry around {support_level:.1f}"
+            
             if close < dma50: s_reason = "Price below 50DMA (Downtrend)"
             else: s_reason = "Weak Momentum (RSI/MACD)"
 
