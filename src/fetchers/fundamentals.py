@@ -173,7 +173,10 @@ class FundamentalFetcher:
                 'EBITDA Trend': ebitda_last,
                 'Debt / Equity': de,
                 'Dividend Yield': dy,
-                'Intrinsic Value': eps_last * 15, # Very Rough Graham approx (EPS * 8.5 + 2g) or just PE 15
+                # Graham Number = Sqrt(22.5 * EPS * BookValue)
+                # Use TTM EPS (Price/PE) for better accuracy than last FY EPS
+                # If PE is 0 or invalid, fallback to eps_last
+                'Intrinsic Value': (22.5 * (cmp/pe if pe > 0 else eps_last) * float(data.get('book value', 0)))**0.5 if ((cmp/pe if pe > 0 else eps_last) > 0 and float(data.get('book value', 0)) > 0) else ((cmp/pe if pe > 0 else eps_last) * 15), 
                 'Current Ratio': curr_ratio,
                 'Promoter Holding': prom_hold,
                 'FII/DII Change': (fii_last - fii_prev),
