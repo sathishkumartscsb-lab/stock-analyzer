@@ -69,9 +69,11 @@ if __name__ == '__main__':
     
     start_handler = CommandHandler('start', start)
     analyze_handler = CommandHandler('analyze', analyze)
+    stock_handler = CommandHandler('stock', analyze) # Alias /stock to analyze logic
     
     application.add_handler(start_handler)
     application.add_handler(analyze_handler)
+    application.add_handler(stock_handler)
     
     print("Bot is polling...")
     application.run_polling()
