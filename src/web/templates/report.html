@@ -314,7 +314,7 @@
             </div>
             <div class="score-box">
                 <span
-                    class="score-val {{ 'text-green' if 'Low' in data.health_label else ('text-yellow' if 'Medium' in data.health_label else 'text-red') }}">
+                    class="score-val {{ 'text-green' if data.total_score > 25 else ('text-yellow' if data.total_score > 15 else 'text-red') }}">
                     {{ data.health_label.split('(')[0] }}
                 </span>
                 <span class="score-lbl">Overall Health</span>

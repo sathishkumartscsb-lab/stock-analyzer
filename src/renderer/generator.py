@@ -47,7 +47,7 @@ class InfographicGenerator:
         
         draw.rounded_rectangle([750, 40, 1150, 160], radius=20, fill=self.card_bg, outline=score_color, width=4)
         draw.text((800, 60), f"Score: {score:.1f}/37", font=self.header_font, fill=score_color)
-        draw.text((800, 110), f"{risk_label}", font=self.body_font, fill=self.text_color)
+        draw.text((800, 110), f"{risk_label}", font=self.body_font, fill=score_color)
 
         # 2. DATA GRID (200 - 1300)
         y_start = 200
