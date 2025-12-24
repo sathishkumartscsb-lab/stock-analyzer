@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 import logging
 import os
 import sys
@@ -16,15 +16,10 @@ logging.basicConfig(
 )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome! Use /analyze <STOCK_NAME> to get a report.")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome! Type any stock name (e.g., TATAMOTORS) to get a full analysis report.")
 
-async def analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide a stock name. Usage: /analyze TATAMOTORS")
-        return
-
-    symbol = context.args[0].upper()
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Analyzing {symbol}... Please wait.")
+async def analyze_stock(update: Update, context: ContextTypes.DEFAULT_TYPE, symbol: str):
+    cid = update.effective_chat.id
     
     # Run the pipeline (This is blocking, should ideally be in a thread/process for asyncio, but ok for MVP)
     # 1. Fetch
@@ -38,7 +33,7 @@ async def analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
     news_data = nf.fetch_latest_news(symbol)
     
     if not fund_data and not tech_data:
-         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Could not fetch data for {symbol}.")
+         await context.bot.send_message(chat_id=cid, text=f"Could not fetch data for {symbol}.")
          return
 
     # 2. Analyze
@@ -53,17 +48,31 @@ async def analyze(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # 4. Send Image
     caption = (
-        f"*{symbol} Analysis*\n"
+        f"📊 *{symbol} Analysis*\n"
         f"Score: {result['total_score']:.1f}/37\n"
         f"Risk: {result.get('health_label', 'N/A')}\n"
         f"Swing: {result.get('swing_verdict', 'N/A')}\n"
         f"Long Term: {result.get('long_term_verdict', 'N/A')}"
     )
-    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=open(output_path, 'rb'), caption=caption, parse_mode='Markdown')
+    await context.bot.send_photo(chat_id=cid, photo=open(output_path, 'rb'), caption=caption, parse_mode='Markdown')
     
     # Cleanup
     if os.path.exists(output_path):
         os.remove(output_path)
+
+async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide a stock name. Usage: /analyze TATAMOTORS")
+        return
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Analyzing {context.args[0].upper()}... Please wait.")
+    await analyze_stock(update, context, context.args[0].upper())
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if len(text) < 10 and text.isalpha():
+        symbol = text.upper()
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Analyzing {symbol}... Please wait.")
+        await analyze_stock(update, context, symbol)
 
 if __name__ == '__main__':
     if not TELEGRAM_BOT_TOKEN:
@@ -73,12 +82,16 @@ if __name__ == '__main__':
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
     
     start_handler = CommandHandler('start', start)
-    analyze_handler = CommandHandler('analyze', analyze)
-    stock_handler = CommandHandler('stock', analyze) # Alias /stock to analyze logic
+    analyze_handler = CommandHandler('analyze', analyze_command)
+    stock_handler = CommandHandler('stock', analyze_command)
+    
+    # Text handler for direct symbols
+    text_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message)
     
     application.add_handler(start_handler)
     application.add_handler(analyze_handler)
     application.add_handler(stock_handler)
+    application.add_handler(text_handler)
     
     print("Bot is polling...")
     application.run_polling()
