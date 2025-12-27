@@ -17,22 +17,23 @@ class FundamentalFetcher:
         """
         url = SCREENER_URL.format(symbol)
         try:
-            response = requests.get(url, headers=self.headers)
+            data = {}
+            response = requests.get(url, headers=self.headers, timeout=15)
             if response.status_code != 200:
                 logger.error(f"Failed to fetch Screener data for {symbol}: {response.status_code}")
                 return None
             
             soup = BeautifulSoup(response.text, 'html.parser')
-            data = {}
             
-            # --- 1. Parsing Top Ratios ---
-            ratios = soup.find_all('li', class_='flex flex-space-between')
-            for ratio in ratios:
-                name = ratio.find('span', class_='name').text.strip().lower()
-                value = ratio.find('span', class_='number').text.strip().replace(',', '')
-                data[name] = value
-                data[name] = value
-            
+            def safe_float(val, default=0.0):
+                try:
+                    if not val or str(val).strip() == "": return default
+                    # Remove any non-numeric except . and -
+                    clean_val = "".join(c for c in str(val) if c.isdigit() or c in ".-")
+                    return float(clean_val) if clean_val else default
+                except:
+                    return default
+
             # --- Helpers to parse tables ---
             def get_table_row(table_id, row_name, index=-1): # index -1 means latest (TTM or last quarter)
                 try:
@@ -46,43 +47,51 @@ class FundamentalFetcher:
                             cols = row.find_all('td')
                             if not cols: continue
                             val = cols[index].text.strip().replace(',', '').replace('%', '')
-                            return float(val) if val else 0
+                            return safe_float(val)
                     return 0
                 except: return 0
 
+            # --- 1. Parsing Top Ratios ---
+            ratios = soup.find_all('li', class_='flex flex-space-between')
+            for ratio in ratios:
+                name_span = ratio.find('span', class_='name')
+                num_span = ratio.find('span', class_='number')
+                if name_span and num_span:
+                    name = name_span.text.strip().lower()
+                    value = num_span.text.strip().replace(',', '')
+                    data[name] = value
+            
             # --- 2. Extracting the 24 Fundamental Parameters ---
             
             # 1. Market Cap
-            mcap = float(data.get('market cap', 0))
+            mcap = safe_float(data.get('market cap'))
             
             # 2. CMP vs 52W (Parse High/Low)
             hl = data.get('high / low', '0 / 0').split('/')
-            high52 = float(hl[0].strip()) if len(hl)>0 else 0
-            low52 = float(hl[1].strip()) if len(hl)>1 else 0
-            cmp = float(data.get('current price', 0))
+            high52 = safe_float(hl[0]) if len(hl)>0 else 0
+            low52 = safe_float(hl[1]) if len(hl)>1 else 0
+            cmp = safe_float(data.get('current price'))
             
             # 3. PE
-            pe = float(data.get('stock p/e', 0))
+            pe = safe_float(data.get('stock p/e'))
             
-            # Industry PE (Often provided as 'industry pe')
-            industry_pe = float(data.get('industry pe', 0)) # Might need to check if this key exists on Screener top ratio logic
+            # Industry PE
+            industry_pe = safe_float(data.get('industry pe')) 
             
             # ROE
-            roe_val = float(data.get('return on equity', 0))
+            roe_val = safe_float(data.get('return on equity'))
             if roe_val == 0:
-                 roe_val = float(data.get('roe', 0))
+                 roe_val = safe_float(data.get('roe'))
             
             # Book Value & Price to Book
-            book_value = float(data.get('book value', 0))
-            price_to_book = float(data.get('price to book value', 0))
-            if price_to_book == 0:
-                price_to_book = float(data.get('pb', 0))
-                
-            # Industry PB (Approximation: if not present, we can't compare exactly to Industry BV, but can try)
-            industry_pb = float(data.get('industry pb', 0))
+            book_value = safe_float(data.get('book value'))
+            price_to_book = safe_float(data.get('price to book value'))
             
-            # Piotroski (Screener often has 'Piotroski score')
-            piotroski_val = float(data.get('piotroski score', 0))
+            # Piotroski
+            piotroski_val = safe_float(data.get('piotroski score'))
+            
+            # Industry PB (Approximation)
+            industry_pb = safe_float(data.get('industry pb'))
             
             # 5. EPS Trend (Latest Quarter vs Previous)
             eps_last = get_table_row('quarters', 'EPS', -1)
@@ -92,19 +101,17 @@ class FundamentalFetcher:
             ebitda_last = get_table_row('quarters', 'Operating Profit', -1)
             
             # 7. Debt / Equity
-            # Sometimes in ratios or inferred from Borrowings/Equity
-            de = float(data.get('debt \/ eq', 0)) # Try top ratios first
-            if de == 0: # Try calculating
+            de = safe_float(data.get('debt / eq'))
+            if de == 0: 
                 borrowings = get_table_row('balance-sheet', 'Borrowings', -1)
                 equity = get_table_row('balance-sheet', 'Share Capital', -1) + get_table_row('balance-sheet', 'Reserves', -1)
                 de = borrowings / equity if equity else 0
-
+                
             # 8. Dividend Yield
-            dy = float(data.get('dividend yield', 0))
+            dy = safe_float(data.get('dividend yield'))
             
             # 10. Current Ratio
-            # Usually in ratios section check generic scraping
-            curr_ratio = 1.5 # Placeholder if not in top ratios
+            curr_ratio = 1.5 
             
             # 11. Promoter Holding
             prom_hold = get_table_row('shareholding', 'Promoters', -1)
@@ -118,7 +125,7 @@ class FundamentalFetcher:
             ocf = get_table_row('cash-flow', 'Cash from Operating Activity', -1)
             
             # 14. ROCE
-            roce = float(data.get('roce', 0))
+            roce = safe_float(data.get('roce'))
             
             # 15/16. CAGR (Sales/Profit)
             # Screener has a specific "Compounded Sales Growth" table, hard to parse generically by ID.
@@ -132,7 +139,9 @@ class FundamentalFetcher:
             prof_cagr = ((net_profit/prof_3y)**(1/3) - 1)*100 if prof_3y else 0
             
             # 17. Interest Coverage
-            int_cov = float(data.get('int coverage', 0)) # often in top ratios
+            int_cov = safe_float(data.get('interest coverage')) # fixed key
+            if int_cov == 0:
+                 int_cov = safe_float(data.get('int coverage'))
             if int_cov == 0:
                  op_profit = get_table_row('profit-loss', 'Operating Profit', -1)
                  interest = get_table_row('profit-loss', 'Interest', -1)
@@ -177,7 +186,7 @@ class FundamentalFetcher:
             # Graham Number (Deep Value)
             # Need Book Value - checking if we fetched it? 
             # Often data.get('book value') works if screener props are clean.
-            bv_val = float(data.get('book value', 0))
+            bv_val = safe_float(data.get('book value'))
             graham_num = (22.5 * eps_ttm * bv_val)**0.5 if (eps_ttm > 0 and bv_val > 0) else 0
             
             # Graham Formula (Growth Value)

@@ -20,45 +20,59 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def analyze_stock(update: Update, context: ContextTypes.DEFAULT_TYPE, symbol: str):
     cid = update.effective_chat.id
-    
-    # Run the pipeline (This is blocking, should ideally be in a thread/process for asyncio, but ok for MVP)
-    # 1. Fetch
-    ff = FundamentalFetcher()
-    fund_data = ff.get_data(symbol)
-    
-    tf = TechnicalFetcher()
-    tech_data = tf.get_data(symbol)
-    
-    nf = NewsFetcher()
-    news_data = nf.fetch_latest_news(symbol)
-    
-    if not fund_data and not tech_data:
-         await context.bot.send_message(chat_id=cid, text=f"Could not fetch data for {symbol}.")
-         return
+    try:
+        logging.info(f"Starting analysis for {symbol}")
+        # 1. Fetch
+        ff = FundamentalFetcher()
+        logging.info(f"[{symbol}] Fetching fundamentals...")
+        fund_data = ff.get_data(symbol)
+        
+        tf = TechnicalFetcher()
+        logging.info(f"[{symbol}] Fetching technicals...")
+        tech_data = tf.get_data(symbol)
+        
+        nf = NewsFetcher()
+        logging.info(f"[{symbol}] Fetching news...")
+        news_data = nf.fetch_latest_news(symbol)
+        
+        if not fund_data and not tech_data:
+             await context.bot.send_message(chat_id=cid, text=f"⚠️ Could not fetch data for {symbol}. Please verify the ticker.")
+             return
 
-    # 2. Analyze
-    engine = AnalysisEngine()
-    result = engine.evaluate_stock(fund_data, tech_data, news_data)
-    result['cmp'] = fund_data.get('Current Price') if fund_data else tech_data.get('Close', 0)
-    
-    # 3. Generate Image
-    output_path = f"{symbol}_report.png"
-    gen = InfographicGenerator()
-    gen.generate_report(symbol, result, output_path)
-    
-    # 4. Send Image
-    caption = (
-        f"📊 *{symbol} Analysis*\n"
-        f"Score: {result['total_score']:.1f}/37\n"
-        f"Risk: {result.get('health_label', 'N/A')}\n"
-        f"Swing: {result.get('swing_verdict', 'N/A')}\n"
-        f"Long Term: {result.get('long_term_verdict', 'N/A')}"
-    )
-    await context.bot.send_photo(chat_id=cid, photo=open(output_path, 'rb'), caption=caption, parse_mode='Markdown')
-    
-    # Cleanup
-    if os.path.exists(output_path):
-        os.remove(output_path)
+        # 2. Analyze
+        logging.info(f"[{symbol}] Evaluating stock...")
+        engine = AnalysisEngine()
+        result = engine.evaluate_stock(fund_data, tech_data, news_data)
+        result['cmp'] = fund_data.get('Current Price') if fund_data else tech_data.get('Close', 0)
+        
+        # 3. Generate Image
+        logging.info(f"[{symbol}] Generating infographic...")
+        output_path = f"{symbol}_report.png"
+        gen = InfographicGenerator()
+        gen.generate_report(symbol, result, output_path)
+        
+        # 4. Send Image
+        logging.info(f"[{symbol}] Sending photo to chat...")
+        caption = (
+            f"📊 *{symbol} Analysis*\n"
+            f"Score: {result['total_score']:.1f}/37\n"
+            f"Risk: {result.get('health_label', 'N/A')}\n"
+            f"Swing: {result.get('swing_verdict', 'N/A')}\n"
+            f"Long Term: {result.get('long_term_verdict', 'N/A')}"
+        )
+        
+        with open(output_path, 'rb') as photo:
+            await context.bot.send_photo(chat_id=cid, photo=photo, caption=caption, parse_mode='Markdown')
+        
+        logging.info(f"[{symbol}] Finished analysis successfully.")
+        
+    except Exception as e:
+        logging.error(f"Error analyzing {symbol}: {str(e)}", exc_info=True)
+        await context.bot.send_message(chat_id=cid, text=f"❌ Error analyzing {symbol}: {str(e)}")
+    finally:
+        # Cleanup
+        if 'output_path' in locals() and os.path.exists(output_path):
+            os.remove(output_path)
 
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -68,8 +82,10 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await analyze_stock(update, context, context.args[0].upper())
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    if len(text) < 10 and text.isalpha():
+    text = update.message.text.strip()
+    # Allowing alphanumeric and common chars like &, -, . and length up to 15
+    import re
+    if len(text) < 15 and re.match(r'^[A-Za-z0-9&.\-]+$', text):
         symbol = text.upper()
         await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Analyzing {symbol}... Please wait.")
         await analyze_stock(update, context, symbol)

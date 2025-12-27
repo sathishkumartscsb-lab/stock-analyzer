@@ -15,17 +15,25 @@ class TechnicalFetcher:
 
     def get_live_price(self, symbol):
         """
-        Fetches the latest available price using yfinance fast_info.
+        Fetches the latest available price.
+        Uses history(period='1d') as it's more reliable than fast_info in some yf versions.
         """
         try:
-            ns_symbol = f"{symbol}.NS"
+            # Handle suffix
+            suffix = ""
+            if "." not in symbol:
+                suffix = ".NS"
+            ns_symbol = f"{symbol.strip().upper()}{suffix}"
+            
             ticker = yf.Ticker(ns_symbol)
-            # fastinfo provides faster access to metadata
-            # logger.info(f"FastInfo keys: {ticker.fast_info.keys()}") 
-            # Note: fast_info is a lazy dict, accessing keys might trigger fetch
-            price = ticker.fast_info.last_price
-            if price is None:
-                price = ticker.fast_info.previous_close
+            
+            # Robust price fetch
+            df = ticker.history(period='1d')
+            if not df.empty:
+                return float(df['Close'].iloc[-1])
+            
+            # Legacy fallback
+            price = ticker.info.get('regularMarketPrice') or ticker.info.get('currentPrice')
             return float(price) if price else 0.0
         except Exception as e:
             logger.error(f"Error fetching live price for {symbol}: {e}")
@@ -33,29 +41,44 @@ class TechnicalFetcher:
 
     def fetch_ohlc_history(self, symbol, period="1y"):
         """
-        Fetches historical data using yfinance (reliable free source).
-        Saves scraping capability for live price if needed, but YF is good for indicators.
-        Note: NSE symbols in yfinance often need '.NS' suffix.
+        Fetches historical data using yfinance.
         """
         try:
-            ns_symbol = f"{symbol}.NS"
+            suffix = ""
+            if "." not in symbol:
+                suffix = ".NS"
+            ns_symbol = f"{symbol.strip().upper()}{suffix}"
+            
+            logger.info(f"fetch_ohlc_history: symbols={ns_symbol}, period={period}")
             ticker = yf.Ticker(ns_symbol)
             df = ticker.history(period=period)
             
+            if df.empty and suffix == ".NS":
+                logger.info(f"NSE empty, trying BSE for {symbol}")
+                ns_symbol = f"{symbol.strip().upper()}.BO"
+                ticker = yf.Ticker(ns_symbol)
+                df = ticker.history(period=period)
+            
             if df.empty:
-                logger.warning(f"No history found for {symbol} via yfinance.")
+                logger.warning(f"No history found for {symbol} via yfinance (Final ticker: {ns_symbol})")
                 return None
-                
+            
+            logger.info(f"fetch_ohlc_history: success for {ns_symbol}, rows={len(df)}")
             return df
         except Exception as e:
             logger.error(f"Error fetching technicals for {symbol}: {e}")
             return None
 
     def calculate_indicators(self, df):
-        if df is None or len(df) < 200:
+        if df is None:
+            logger.warning("calculate_indicators: df is None")
+            return {}
+        if len(df) < 30: # Reduced from 200 for flexibility
+            logger.warning(f"calculate_indicators: df too short ({len(df)})")
             return {}
 
         close = df['Close'].values
+        # ... Rest of indices logic ...
         
         # 50 DMA & 200 DMA
         # 50 DMA & 200 DMA - Manual calculation if talib missing
