@@ -7,6 +7,13 @@ class AnalysisEngine:
     def __init__(self):
         pass
 
+    def _safe_fmt(self, val, fmt=":.2f"):
+        try:
+            if val is None or val == "": return "N/A"
+            return ("{"+fmt+"}").format(float(val))
+        except:
+            return "N/A"
+
     def evaluate_stock(self, fundamentals, technicals, news):
         """
         Main entry point to evaluate a stock.
@@ -74,7 +81,7 @@ class AnalysisEngine:
         score_report['details'].update(n_details)
         
         # Total
-        score_report['total_score'] = f_score + t_score + n_score
+        score_report['total_score'] = float(f_score + t_score + n_score)
         
         # Verdicts
         verdicts = self._generate_verdicts(score_report['total_score'], fundamentals, technicals)
@@ -142,49 +149,47 @@ class AnalysisEngine:
                 if pe < ind_pe: st += ' (Vs Ind: Attractive)'
                 else: st += ' (Vs Ind: Cautious)'
                 
-        score += s; details['P/E Ratio'] = {'value': f"{pe:.2f} (Ind: {ind_pe:.2f})", 'score': s, 'status': st}
+        score += s; details['P/E Ratio'] = {'value': f"{self._safe_fmt(pe)} (Ind: {self._safe_fmt(ind_pe)})", 'score': s, 'status': st}
         
         # 4. PEG (< 1 is good)
         s, st = evaluate('PEG Ratio', data.get('PEG Ratio', 2), 1, '<')
-        score += s; details['PEG Ratio'] = {'value': f"{data.get('PEG Ratio'):.2f}", 'score': s, 'status': st}
+        score += s; details['PEG Ratio'] = {'value': self._safe_fmt(data.get('PEG Ratio')), 'score': s, 'status': st}
         
         # 5. EPS Trend
         s, st = evaluate('EPS Trend', data.get('EPS Trend', 0), 0)
-        score += s; details['EPS Trend'] = {'value': f"{data.get('EPS Trend'):.1f}%", 'score': s, 'status': st}
+        score += s; details['EPS Trend'] = {'value': f"{self._safe_fmt(data.get('EPS Trend'), ':.1f')}%", 'score': s, 'status': st}
         
         # 6. EBITDA Trend
         s, st = evaluate('EBITDA Trend', data.get('EBITDA Trend', 0), 0)
-        score += s; details['EBITDA Trend'] = {'value': data.get('EBITDA Trend'), 'score': s, 'status': st}
+        score += s; details['EBITDA Trend'] = {'value': self._safe_fmt(data.get('EBITDA Trend')), 'score': s, 'status': st}
         
         # 7. Debt/Equity (< 1 good)
         s, st = evaluate('Debt / Equity', data.get('Debt / Equity', 0), 1, '<')
-        score += s; details['Debt / Equity'] = {'value': data.get('Debt / Equity'), 'score': s, 'status': st}
+        score += s; details['Debt / Equity'] = {'value': self._safe_fmt(data.get('Debt / Equity')), 'score': s, 'status': st}
         
         # 8. Dividend Yield (>0 good)
         s, st = evaluate('Dividend Yield', data.get('Dividend Yield', 0), 0)
-        score += s; details['Dividend Yield'] = {'value': f"{float(data.get('Dividend Yield', 0)):.2f}%", 'score': s, 'status': st}
+        score += s; details['Dividend Yield'] = {'value': f"{self._safe_fmt(data.get('Dividend Yield', 0))}%", 'score': s, 'status': st}
         
         # 9. Intrinsic Value (CMP < Intrinsic)
         intr = data.get('Intrinsic Value', 0)
-        if cmp < intr: s=1; st='Undervalued'
+        if cmp < (float(intr or 0)): s=1; st='Undervalued'
         else: s=0; st='Overvalued'
-        score += s; details['Intrinsic Value'] = {'value': f"{intr:.1f}", 'score': s, 'status': st}
+        score += s; details['Intrinsic Value'] = {'value': self._safe_fmt(intr, ':.1f'), 'score': s, 'status': st}
         
         # 10. Current Ratio (> 1.5)
         s, st = evaluate('Current Ratio', data.get('Current Ratio', 0), 1.5)
-        score += s; details['Current Ratio'] = {'value': data.get('Current Ratio'), 'score': s, 'status': st}
+        score += s; details['Current Ratio'] = {'value': self._safe_fmt(data.get('Current Ratio')), 'score': s, 'status': st}
         
         # 11. Promoter Holding (> 40%?)
         s, st = evaluate('Promoter Holding', data.get('Promoter Holding', 0), 40)
-        score += s; details['Promoter Holding'] = {'value': f"{data.get('Promoter Holding')}%", 'score': s, 'status': st}
+        score += s; details['Promoter Holding'] = {'value': f"{self._safe_fmt(data.get('Promoter Holding'))}%", 'score': s, 'status': st}
         
         # 12. FII/DII Trend (>0)
         # Rule: Positive Change (> 0%) -> Institutional money is entering.
-        fii_change = float(data.get('FII/DII Change', 0))
-        if fii_change > 0: s=1; st='Positive (Increasing)'
-        elif fii_change < 0: s=0; st='Negative (Decreasing)'
-        else: s=0.5; st='Neutral'
-        score += s; details['FII/DII Trend'] = {'value': f"{fii_change:.2f}%", 'score': s, 'status': st}
+        fii_change = data.get('FII/DII Change', 0)
+        s, st = evaluate('FII/DII Change', fii_change, 0)
+        score += s; details['FII/DII Trend'] = {'value': f"{self._safe_fmt(fii_change)}%", 'score': s, 'status': st}
         
         # 13. Operating Cash Flow (Advanced 4-Phase)
         ocf = float(data.get('Operating Cash Flow', 0))
@@ -224,11 +229,11 @@ class AnalysisEngine:
             s = 1 if s_ocf >= 1 else 0.5
             st = " | ".join(st_ocf_list)
 
-        score += s; details['Operating Cash Flow'] = {'value': f"{ocf:.2f}", 'score': s, 'status': st}
+        score += s; details['Operating Cash Flow'] = {'value': self._safe_fmt(ocf), 'score': s, 'status': st}
         
         # 14. ROCE (>15)
         s, st = evaluate('ROCE', data.get('ROCE', 0), 15)
-        score += s; details['ROCE'] = {'value': f"{data.get('ROCE')}%", 'score': s, 'status': st}
+        score += s; details['ROCE'] = {'value': f"{self._safe_fmt(data.get('ROCE'))}%", 'score': s, 'status': st}
         
         # 14b. ROE (>15 good, <10 avoid)
         roe = data.get('ROE', 0)
@@ -236,30 +241,30 @@ class AnalysisEngine:
         if roe > 15: s=1; st='Good'
         elif roe < 10: s=0; st='Avoid (Low)'
         else: s=0.5; st='Average'
-        score += s; details['ROE'] = {'value': f"{roe}%", 'score': s, 'status': st}
+        score += s; details['ROE'] = {'value': f"{self._safe_fmt(roe)}%", 'score': s, 'status': st}
 
         # 15. Rev CAGR (>10)
         s, st = evaluate('Revenue CAGR', data.get('Revenue CAGR', 0), 10)
-        score += s; details['Revenue CAGR'] = {'value': f"{data.get('Revenue CAGR'):.1f}%", 'score': s, 'status': st}
+        score += s; details['Revenue CAGR'] = {'value': f"{self._safe_fmt(data.get('Revenue CAGR'), ':.1f')}%", 'score': s, 'status': st}
         
         # 16. Profit CAGR (>10)
         s, st = evaluate('Profit CAGR', data.get('Profit CAGR', 0), 10)
-        score += s; details['Profit CAGR'] = {'value': f"{data.get('Profit CAGR'):.1f}%", 'score': s, 'status': st}
+        score += s; details['Profit CAGR'] = {'value': f"{self._safe_fmt(data.get('Profit CAGR'), ':.1f')}%", 'score': s, 'status': st}
         
         # 17. Interest Coverage (>3)
         s, st = evaluate('Interest Coverage', data.get('Interest Coverage', 0), 3)
-        score += s; details['Interest Coverage'] = {'value': f"{data.get('Interest Coverage'):.1f}", 'score': s, 'status': st}
+        score += s; details['Interest Coverage'] = {'value': self._safe_fmt(data.get('Interest Coverage'), ':.1f'), 'score': s, 'status': st}
         
         # 18. FCF (>0)
         s, st = evaluate('Free Cash Flow', data.get('Free Cash Flow', 0), 0)
-        score += s; details['Free Cash Flow'] = {'value': data.get('Free Cash Flow'), 'score': s, 'status': st}
+        score += s; details['Free Cash Flow'] = {'value': self._safe_fmt(data.get('Free Cash Flow')), 'score': s, 'status': st}
         
         # 19. Equity Dilution (Mock 0)
         score += 1; details['Equity Dilution'] = {'value': 'No', 'score': 1, 'status': 'Stable'}
         
         # 20. Pledged Shares (<5%)
         s, st = evaluate('Pledged Shares', data.get('Pledged Shares', 0), 5, '<')
-        score += s; details['Pledged Shares'] = {'value': f"{data.get('Pledged Shares')}%", 'score': s, 'status': st}
+        score += s; details['Pledged Shares'] = {'value': f"{self._safe_fmt(data.get('Pledged Shares'))}%", 'score': s, 'status': st}
         
         # 21. Contingent Liab (Risk Check)
         # Rule: if Contingent_Liabilities > (0.5 * Net_Worth): Status = ❌
@@ -287,7 +292,7 @@ class AnalysisEngine:
         
         # 24. CFO/PAT (>1)
         s, st = evaluate('CFO to PAT', data.get('CFO to PAT', 1), 1)
-        score += s; details['CFO / PAT'] = {'value': f"{data.get('CFO to PAT'):.2f}", 'score': s, 'status': st}
+        score += s; details['CFO / PAT'] = {'value': self._safe_fmt(data.get('CFO to PAT')), 'score': s, 'status': st}
         
         # 24b. Book Value Analysis
         # 1. Trend: (Using proxy if historical missing, but assuming positive BV is baseline)
@@ -321,6 +326,20 @@ class AnalysisEngine:
         details = {}
         if not data: return 0, {}
         
+        # Check if indicators are actually available
+        if not data.get('indicators_available', True):
+            # Price only analysis or total N/A
+            data_note = data.get('data_note', 'Missing Historical Data')
+            data_source = data.get('data_source', 'N/A')
+            note_text = f"{data_note} (Source: {data_source})" if data_source != 'N/A' else data_note
+            
+            details['Trend (DMA)'] = {'value': 'N/A', 'score': 0, 'status': note_text}
+            details['RSI'] = {'value': 'N/A', 'score': 0, 'status': 'N/A'}
+            details['MACD'] = {'value': 'N/A', 'score': 0, 'status': 'N/A'}
+            details['Pivot Support'] = {'value': 'N/A', 'score': 0, 'status': 'N/A'}
+            details['Volume Trend'] = {'value': 'N/A', 'score': 0, 'status': 'N/A'}
+            return 0, details
+
         # 25. Trend (Moving Average Ribbon)
         # Strong Bullish: Price > 50DMA > 200DMA
         # Falling Knife: Price < 50DMA < 200DMA
@@ -338,24 +357,24 @@ class AnalysisEngine:
         else:
              s=0; st='Bearish'
              
-        score += s; details['Trend (DMA)'] = {'value': f"{close:.0f} vs {dma200:.0f}", 'score': s, 'status': st}
+        score += s; details['Trend (DMA)'] = {'value': f"{self._safe_fmt(close, ':.0f')} vs {self._safe_fmt(dma200, ':.0f')}", 'score': s, 'status': st}
         
         # 26. RSI (30-70 range logic)
         rsi = data.get('RSI', 50)
         if 40 < rsi < 70: s=0.5; st='Neutral'
         elif rsi <= 40: s=1; st='Oversold (Buy)'
         else: s=0; st='Overbought'
-        score += s; details['RSI'] = {'value': f"{rsi:.1f}", 'score': s, 'status': st}
+        score += s; details['RSI'] = {'value': self._safe_fmt(rsi, ':.1f'), 'score': s, 'status': st}
         
         # 27. MACD
-        if data['MACD'] > data['MACD_SIGNAL']: s=1; st='Bullish'
+        if data.get('MACD', 0) > data.get('MACD_SIGNAL', 0): s=1; st='Bullish'
         else: s=0; st='Bearish'
-        score += s; details['MACD'] = {'value': f"{data['MACD']:.2f}", 'score': s, 'status': st}
+        score += s; details['MACD'] = {'value': self._safe_fmt(data.get('MACD', 0)), 'score': s, 'status': st}
         
         # 28. Pivot (Price > Pivot)
-        if data['Close'] > data['Pivot']: s=1; st='Above Pivot'
+        if data.get('Close', 0) > data.get('Pivot', 0): s=1; st='Above Pivot'
         else: s=0; st='Below Pivot'
-        score += s; details['Pivot Support'] = {'value': f"{data['Pivot']:.1f}", 'score': s, 'status': st}
+        score += s; details['Pivot Support'] = {'value': self._safe_fmt(data.get('Pivot', 0), ':.1f'), 'score': s, 'status': st}
         
         # 29. VWAP/Vol
         if data.get('VWAP_Trend') == 'Bullish': s=1
@@ -430,11 +449,15 @@ class AnalysisEngine:
         # Swing
         close = float(technicals.get('Close', 100) or 100)
         dma50 = float(technicals.get('50DMA', 0) or 0)
+        has_tech = technicals.get('indicators_available', True)
         
         swing_score = 0
-        if close > dma50: swing_score += 1
-        if float(technicals.get('MACD', 0) or 0) > float(technicals.get('MACD_SIGNAL', 0) or 0): swing_score += 1
-        if float(technicals.get('RSI', 50) or 50) < 40: swing_score += 1 
+        if has_tech:
+            if close > dma50: swing_score += 1
+            if float(technicals.get('MACD', 0) or 0) > float(technicals.get('MACD_SIGNAL', 0) or 0): swing_score += 1
+            if float(technicals.get('RSI', 50) or 50) < 40: swing_score += 1 
+        else:
+            swing_score = 0 # No technical signals possible
         
         if swing_score >= 2:
             swing = "✅ BUY"
@@ -499,20 +522,25 @@ class AnalysisEngine:
         
         # 2. Technical Summary
         t_signals = []
-        rsi = float(technicals.get('RSI', 50) or 50)
-        macd_val = float(technicals.get('MACD', 0) or 0)
-        macd_sig = float(technicals.get('MACD_SIGNAL', 0) or 0)
+        has_tech = technicals.get('indicators_available', True)
         
-        if close > dma50: t_signals.append("Price above 50DMA (Uptrend)")
-        else: t_signals.append("Price below 50DMA (Weakness)")
-        
-        if rsi < 30: t_signals.append("Oversold (RSI < 30)")
-        elif rsi > 70: t_signals.append("Overbought (RSI > 70)")
-        
-        if macd_val > macd_sig: t_signals.append("Bullish MACD Crossover")
-        else: t_signals.append("Bearish MACD Divergence")
-        
-        tech_text = ", ".join(t_signals) + "."
+        if not has_tech:
+            tech_text = "Historical price data (technicals) not available for this ticker."
+        else:
+            rsi = float(technicals.get('RSI', 50) or 50)
+            macd_val = float(technicals.get('MACD', 0) or 0)
+            macd_sig = float(technicals.get('MACD_SIGNAL', 0) or 0)
+            
+            if close > dma50: t_signals.append("Price above 50DMA (Uptrend)")
+            else: t_signals.append("Price below 50DMA (Weakness)")
+            
+            if rsi < 30: t_signals.append("Oversold (RSI < 30)")
+            elif rsi > 70: t_signals.append("Overbought (RSI > 70)")
+            
+            if macd_val > macd_sig: t_signals.append("Bullish MACD Crossover")
+            else: t_signals.append("Bearish MACD Divergence")
+            
+            tech_text = ", ".join(t_signals) + "."
 
         # Refined Logic
         if is_risky:
@@ -543,7 +571,9 @@ class AnalysisEngine:
         final_action = f"WATCH for support at {close*0.95:.0f}; initiate Long-Term accumulation ONLY if price stabilizes."
 
         # Tech Summary Label
-        if swing == "✅ BUY":
+        if not has_tech:
+            tech_summary = f"N/A 🟡. {tech_text}"
+        elif swing == "✅ BUY":
             tech_summary = f"Bullish 🟢. {tech_text}"
         elif swing == "❌ AVOID":
             tech_summary = f"Bearish 🔴. {tech_text}"

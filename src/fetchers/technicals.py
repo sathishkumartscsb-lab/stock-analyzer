@@ -6,12 +6,41 @@ import logging
 import pandas as pd
 import numpy as np
 import yfinance as yf
+import requests
 
 logger = logging.getLogger(__name__)
 
 class TechnicalFetcher:
     def __init__(self):
         pass
+    
+    def fetch_nse_price(self, symbol):
+        """
+        Fetch current price from NSE India API as fallback
+        """
+        try:
+            url = f"https://www.nseindia.com/api/quote-equity?symbol={symbol}"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json',
+                'Accept-Language': 'en-US,en;q=0.9'
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                price_info = data.get('priceInfo', {})
+                current_price = price_info.get('lastPrice', 0)
+                if current_price > 0:
+                    logger.info(f"NSE API: Got price {current_price} for {symbol}")
+                    return {
+                        'price': current_price,
+                        'change': price_info.get('change', 0),
+                        'pChange': price_info.get('pChange', 0),
+                        'source': 'NSE India'
+                    }
+        except Exception as e:
+            logger.error(f"NSE API error for {symbol}: {e}")
+        return None
 
     def get_live_price(self, symbol):
         """
@@ -154,15 +183,32 @@ class TechnicalFetcher:
         df = self.fetch_ohlc_history(symbol)
         live_price = self.get_live_price(symbol)
         
-        data = {}
-        if df is not None:
-            data = self.calculate_indicators(df)
+        # Try NSE API if yfinance didn't give us a price
+        nse_data = None
+        if not live_price or live_price == 0:
+            logger.info(f"yfinance failed for {symbol}, trying NSE API...")
+            nse_data = self.fetch_nse_price(symbol)
+            if nse_data:
+                live_price = nse_data['price']
         
-        if live_price > 0:
-            data['Live Price'] = live_price
-            # If the market is open, Close[-1] might be delayed.
-            # We don't overwrite Close blindly as it's used for indicators, 
-            # but we pass Live Price for display.
-            
+        # Base Data Structure (Defaults)
+        data = {
+            '50DMA': 0, '200DMA': 0, 'RSI': 50, 'MACD': 0, 'MACD_SIGNAL': 0,
+            'Close': live_price or 0, 'Pivot': 0, 'R1': 0, 'S1': 0,
+            'Volume_Trend': 'N/A', 'VWAP_Trend': 'Neutral', 'Live Price': live_price,
+            'indicators_available': False,
+            'data_source': nse_data['source'] if nse_data else 'Yahoo Finance',
+            'data_note': 'Historical data unavailable for technical analysis' if nse_data else None
+        }
+        
+        if df is not None and not df.empty and len(df) >= 30:
+            indicators = self.calculate_indicators(df)
+            data.update(indicators)
+            data['indicators_available'] = True
+            data['data_note'] = None  # Clear note if we have full data
+            if live_price > 0:
+                 data['Live Price'] = live_price
+                 data['Close'] = live_price # Prioritize live
+        
         return data
 
